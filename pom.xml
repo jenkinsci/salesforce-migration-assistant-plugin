@@ -1,45 +1,45 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <parent>
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.539</version>
-  </parent>
+    <version>1.579</version>
+    </parent>
 
-  <artifactId>sma</artifactId>
-  <name>Salesforce Migration Assistant</name>
-  <version>2.1</version>
-  <packaging>hpi</packaging>
+    <artifactId>sma</artifactId>
+    <name>Salesforce Migration Assistant</name>
+    <version>2.1.1</version>
+    <packaging>hpi</packaging>
 
-  <licenses>
-    <license>
-      <name>MIT License</name>
-      <url>http://opensource.org/licenses/MIT</url>
-    </license>
-  </licenses>
+    <licenses>
+        <license>
+          <name>MIT License</name>
+          <url>http://opensource.org/licenses/MIT</url>
+        </license>
+    </licenses>
 
-  <repositories>
-    <repository>
-      <id>repo.jenkins-ci.org</id>
-      <url>http://repo.jenkins-ci.org/public/</url>
-    </repository>
-    <repository>
-      <id>jgit-repository</id>
-      <name>Eclipse JGit Repository</name>
-      <url>https://repo.eclipse.org/content/groups/releases/</url>
-    </repository>
-  </repositories>
+    <repositories>
+        <repository>
+          <id>repo.jenkins-ci.org</id>
+          <url>http://repo.jenkins-ci.org/public/</url>
+        </repository>
+        <repository>
+          <id>jgit-repository</id>
+          <name>Eclipse JGit Repository</name>
+          <url>https://repo.eclipse.org/content/groups/releases/</url>
+        </repository>
+    </repositories>
 
-  <pluginRepositories>
-    <pluginRepository>
-      <id>repo.jenkins-ci.org</id>
-      <url>http://repo.jenkins-ci.org/public/</url>
-    </pluginRepository>
-  </pluginRepositories>
+    <pluginRepositories>
+        <pluginRepository>
+          <id>repo.jenkins-ci.org</id>
+          <url>http://repo.jenkins-ci.org/public/</url>
+        </pluginRepository>
+    </pluginRepositories>
 
     <developers>
         <developer>
-            <id>senninha09</id>
+            <id>aesanch2</id>
             <name>Anthony Sanchez</name>
             <email>senninha09@gmail.com</email>
         </developer>

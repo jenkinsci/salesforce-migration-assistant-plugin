@@ -40,7 +40,7 @@ plan the contents of your repository accordingly.
 * Install the plugin.
 * There are some global configuration items that should be set.
     * Enter a Java regular expression to filter your repository for all your unmanaged package unit tests.
-        * The default is ``.*[T|t]est.*``    
+        * The default is ``.*[T|t]est.*``
     * Enter the Poll Wait value.
     * Enter the Max Poll value.
         * The default values for Poll Wait and Max Poll will allow a build to run for up to 100 minutes.
@@ -68,8 +68,10 @@ in your repository.
 
 ### Changelog
 
-#### -> 2.2
-* Add support for proxy configurations
+#### -> 2.1.1
+* Add support for proxy configurations.
+* Require Jenkins v1.579.
+* Bug fixes.
 
 #### -> 2.1
 * Add support for GitHub Pull Request Builder plugin.
