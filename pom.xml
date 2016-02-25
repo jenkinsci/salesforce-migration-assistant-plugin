@@ -6,7 +6,7 @@
     <version>1.579</version>
     </parent>
 
-    <artifactId>sma</artifactId>
+    <artifactId>salesforce-migration-assistant</artifactId>
     <name>Salesforce Migration Assistant</name>
     <version>2.1.1</version>
     <packaging>hpi</packaging>
