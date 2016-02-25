@@ -8,7 +8,7 @@
 
     <artifactId>salesforce-migration-assistant</artifactId>
     <name>Salesforce Migration Assistant</name>
-    <version>2.1.1</version>
+    <version>2.1.2</version>
     <packaging>hpi</packaging>
 
     <licenses>

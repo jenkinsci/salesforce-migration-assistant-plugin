@@ -68,6 +68,9 @@ in your repository.
 
 ### Changelog
 
+#### -> 2.1.2
+* Prepare repository for jenkins-ci hosting.
+
 #### -> 2.1.1
 * Add support for proxy configurations.
 * Require Jenkins v1.579.
