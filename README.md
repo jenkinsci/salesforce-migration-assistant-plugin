@@ -1,6 +1,6 @@
 # Salesforce Migration Assistant
 
-This Jenkins plugin generates automatically deploys metadata changes to a Salesforce organization based on differences 
+This Jenkins plugin automatically deploys metadata changes to a Salesforce organization based on differences
 between two commits in Git. Instead of deploying a repository's contents every time a change is made, the plugin can
 determine what metadata needs to be deployed and deleted and coordinate only those changes. This has the benefit of 
 drastically reducing deployment times and uncoupling the reliance on the package manifest file (``package.xml``).
