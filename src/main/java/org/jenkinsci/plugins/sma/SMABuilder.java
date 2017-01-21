@@ -102,7 +102,6 @@ public class SMABuilder extends Builder {
                 writeToConsole.println("[SMA] Deleting the following metadata:");
                 SMAUtility.printMetadataToConsole(listener, destructiveChanges.getContents());
             }
-
             // Build the zipped deployment package
             ByteArrayOutputStream deploymentPackage = SMAUtility.zipPackage(
                     currentJob.getDeploymentData(),

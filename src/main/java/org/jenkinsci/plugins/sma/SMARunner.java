@@ -159,7 +159,7 @@ public class SMARunner {
      */
     private Map<String, byte[]> getData(List<SMAMetadata> metadatas, String commit) throws Exception {
         Map<String, byte[]> data = new HashMap<String, byte[]>();
-        LOG.warning("getData");
+
         for (SMAMetadata metadata : metadatas) {
             data.put(metadata.toString(), metadata.getBody());
 
