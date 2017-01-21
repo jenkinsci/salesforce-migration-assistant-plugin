@@ -5,9 +5,7 @@ import hudson.model.BuildListener;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -19,9 +17,7 @@ import java.util.zip.ZipOutputStream;
  *
  * @author aesanch2
  */
-public class SMAUtility
-{
-
+public class SMAUtility {
     private static final Logger LOG = Logger.getLogger(SMAUtility.class.getName());
 
 
@@ -39,28 +35,29 @@ public class SMAUtility
                                                    SMAPackage destructiveChange) throws Exception
     {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ZipOutputStream zos = new ZipOutputStream(baos);
+        ZipOutputStream zos = null;
+        try {
+            zos = new ZipOutputStream(baos);
 
-        ZipEntry manifestFile = new ZipEntry(packageManifest.getName());
-        zos.putNextEntry(manifestFile);
-        zos.write(packageManifest.getPackage().getBytes());
-        zos.closeEntry();
-
-        ZipEntry destructiveChanges = new ZipEntry(destructiveChange.getName());
-        zos.putNextEntry(destructiveChanges);
-        zos.write(destructiveChange.getPackage().getBytes());
-        zos.closeEntry();
-
-        for (String metadata : deployData.keySet())
-        {
-            ZipEntry metadataEntry = new ZipEntry(metadata);
-            zos.putNextEntry(metadataEntry);
-            zos.write(deployData.get(metadata));
+            ZipEntry manifestFile = new ZipEntry(packageManifest.getName());
+            zos.putNextEntry(manifestFile);
+            zos.write(packageManifest.getPackage().getBytes());
             zos.closeEntry();
+
+            ZipEntry destructiveChanges = new ZipEntry(destructiveChange.getName());
+            zos.putNextEntry(destructiveChanges);
+            zos.write(destructiveChange.getPackage().getBytes());
+            zos.closeEntry();
+
+            for (String metadata : deployData.keySet()) {
+                ZipEntry metadataEntry = new ZipEntry(metadata);
+                zos.putNextEntry(metadataEntry);
+                zos.write(deployData.get(metadata));
+                zos.closeEntry();
+            }
+        } finally {
+            if (null != zos) { zos.close(); }
         }
-
-        zos.close();
-
         return baos;
     }
 
@@ -71,11 +68,14 @@ public class SMAUtility
      * @param location
      * @throws Exception
      */
-    public static void writeZip(ByteArrayOutputStream zipBytes, String location) throws Exception
-    {
-        FileOutputStream fos = new FileOutputStream(location);
-        fos.write(zipBytes.toByteArray());
-        fos.close();
+    public static void writeZip(ByteArrayOutputStream zipBytes, String location) throws Exception {
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(location);
+            fos.write(zipBytes.toByteArray());
+        } finally {
+            if (null != fos) { fos.close(); }
+        }
     }
 
     /**
@@ -84,29 +84,20 @@ public class SMAUtility
      * @param directory
      * @return
      */
-    public static String findPackage(File directory)
-    {
+    public static String findPackage(File directory) {
         String location = "";
-
         File[] filesInDir = directory.listFiles();
 
-        for (File f : filesInDir)
-        {
-            if (f.isDirectory())
-            {
+        for (File f : filesInDir) {
+            if (f.isDirectory()) {
                 location = findPackage(f);
-            }
-            else if (f.getName().equals("package.xml"))
-            {
+            } else if (f.getName().equals("package.xml")) {
                 location = f.getPath();
             }
-
-            if (!location.isEmpty())
-            {
+            if (!location.isEmpty()) {
                 break;
             }
         }
-
         return location;
     }
 
@@ -117,15 +108,12 @@ public class SMAUtility
      * @param repoItem
      * @return
      */
-    public static String checkMeta(String repoItem)
-    {
+    public static String checkMeta(String repoItem) {
         String actualItem = repoItem;
 
-        if (repoItem.contains("-meta"))
-        {
+        if (repoItem.contains("-meta")) {
             actualItem = repoItem.substring(0, repoItem.length() - 9);
         }
-
         return actualItem;
     }
 
@@ -135,16 +123,13 @@ public class SMAUtility
      * @param listener
      * @param metadataList
      */
-    public static void printMetadataToConsole(BuildListener listener, List<SMAMetadata> metadataList)
-    {
+    public static void printMetadataToConsole(BuildListener listener, List<SMAMetadata> metadataList) {
         // Sorts by extension, then by member name
         Collections.sort(metadataList);
 
-        for (SMAMetadata metadata : metadataList)
-        {
+        for (SMAMetadata metadata : metadataList) {
             listener.getLogger().println("- " + metadata.getFullName());
         }
-
         listener.getLogger().println();
     }
 
@@ -155,21 +140,17 @@ public class SMAUtility
      * @param testClassRegex
      * @return
      */
-    public static String searchForTestClass(List<String> allMetadata, String testClassRegex)
-    {
-        String match = "noneFound";
+    public static String searchForTestClass(Set<String> allMetadata, String testClassRegex) {
+        String match = null;
         Matcher matcher;
 
-        for (String s : allMetadata)
-        {
+        for (String s : allMetadata) {
             matcher = Pattern.compile(testClassRegex).matcher(s);
-            if (matcher.find())
-            {
+            if (matcher.find()) {
                 match = s;
                 break;
             }
         }
-
         return match;
     }
 }

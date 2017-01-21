@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.sma;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -61,93 +62,67 @@ public class SMAMetadata implements Comparable<SMAMetadata>
      *
      * @return A string representation of the extension type of the metadata file.
      */
-    public String getExtension()
-    {
-        return extension;
-    }
+    public String getExtension() { return extension; }
 
     /**
      * Returns the parent container for this metadata file.
      *
      * @return A string representation of the parent container for this metadata file.
      */
-    public String getContainer()
-    {
-        return container;
-    }
+    public String getContainer() { return container; }
 
     /**
      * Returns the path of the metadata file.
      *
      * @return A string representation of the path of the metadata file.
      */
-    public String getPath()
-    {
-        return path;
-    }
+    public String getPath() { return path; }
 
     /**
      * Returns the name of the metadata file.
      *
      * @return A string representation of the metadata file's name.
      */
-    public String getMember()
-    {
-        return member;
-    }
+    public String getMember() { return member; }
 
     /**
      * Returns the metadata type of this metadata file.
      *
      * @return A string representation of the metadata file's type.
      */
-    public String getMetadataType()
-    {
-        return metadataType;
-    }
+    public String getMetadataType() { return metadataType; }
 
     /**
      * Returns whether or not this metadata object can be deleted using the Salesforce API.
      *
      * @return A boolean that describes whether or not this metadata object can be deleted using the Salesforce API.
      */
-    public boolean isDestructible()
-    {
-        return destructible;
-    }
+    public boolean isDestructible() { return destructible; }
 
     /**
      * Returns whether or not this metadata object is a valid member of the Salesforce API.
      *
      * @return A boolean that describes wheter or not this metadata object is a valid member of the Salesforce API.
      */
-    public boolean isValid()
-    {
-        return valid;
-    }
+    public boolean isValid() { return valid; }
 
     /**
      * Returns whether or not this metadata object has an accompanying -meta.xml file.
      *
      * @return
      */
-    public boolean hasMetaxml()
-    {
-        return metaxml;
-    }
+    public boolean hasMetaxml() { return metaxml; }
 
     /**
      * A toString() like method that returns a concatenation of the name and extension of the metadata object.
      *
      * @return A string of the name and extension of the metadata object.
      */
-    public String getFullName()
-    {
+    public String getFullName() {
         return member + "." + extension;
     }
 
-    public String toString()
-    {
+    public String toString() {
         return container + "/" + getFullName();
     }
 
@@ -177,9 +152,9 @@ public class SMAMetadata implements Comparable<SMAMetadata>
      * @param contents
      * @return
      */
-    public static List<String> getApexClasses(List<SMAMetadata> contents)
+    public static HashSet<String> getApexClasses(List<SMAMetadata> contents)
     {
-        List<String> allApex = new ArrayList<String>();
+        HashSet<String> allApex = new HashSet<String>();
 
         for (SMAMetadata md : contents)
         {

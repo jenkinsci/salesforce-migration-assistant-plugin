@@ -15,8 +15,7 @@ import java.util.logging.Logger;
  * Class for the salesforceMetadata.xml document that contains Salesforce Metadata API information.
  *
  */
-public class SMAMetadataTypes
-{
+public class SMAMetadataTypes {
     private static final Logger LOG = Logger.getLogger(SMAMetadataTypes.class.getName());
 
     private static final ClassLoader loader = SMAMetadataTypes.class.getClassLoader();
@@ -29,8 +28,7 @@ public class SMAMetadataTypes
      *
      * @throws Exception
      */
-    private static void initDocument() throws Exception
-    {
+    private static void initDocument() throws Exception {
         DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder dbBuilder = dbFactory.newDocumentBuilder();
         doc = dbBuilder.parse(pathToResource);
@@ -42,13 +40,10 @@ public class SMAMetadataTypes
      *
      * @return version
      */
-    public static String getAPIVersion() throws Exception
-    {
-        if (!docAlive)
-        {
+    public static String getAPIVersion() throws Exception {
+        if (!docAlive) {
             initDocument();
         }
-
         String version = null;
 
         doc.getDocumentElement().normalize();
@@ -56,14 +51,12 @@ public class SMAMetadataTypes
         NodeList verNodes = doc.getElementsByTagName("version");
 
         //There should only be one node in this list
-        for (int iterator = 0; iterator < verNodes.getLength(); iterator++)
-        {
+        for (int iterator = 0; iterator < verNodes.getLength(); iterator++) {
             Node curNode = verNodes.item(iterator);
             Element verElement = (Element) curNode;
             //If for some reason there is more than one, get the first one
             version = verElement.getAttribute("API");
         }
-
         return version;
     }
 
@@ -74,13 +67,10 @@ public class SMAMetadataTypes
      * @return SMAMetadata
      * @throws Exception
      */
-    public static SMAMetadata createMetadataObject(String filepath, byte[] data) throws Exception
-    {
-        if (!docAlive)
-        {
+    public static SMAMetadata createMetadataObject(String filepath, byte[] data) throws Exception {
+        if (!docAlive) {
             initDocument();
         }
-
         String container = "empty";
         String metadataType = "Invalid";
         boolean destructible = false;
@@ -100,24 +90,23 @@ public class SMAMetadataTypes
 
         //Get the node with the corresponding extension and get the relevant information for
         //creating the SMAMetadata object
-        for (int iterator = 0; iterator < extNodes.getLength(); iterator++)
-        {
+        for (int iterator = 0; iterator < extNodes.getLength(); iterator++) {
             Node curNode = extNodes.item(iterator);
 
             Element element = (Element) curNode;
-            if (element.getAttribute("name").equals(extension))
-            {
+            if (element.getAttribute("name").equals(extension)) {
                 container = element.getElementsByTagName("container").item(0).getTextContent();
                 metadataType = element.getElementsByTagName("metadata").item(0).getTextContent();
-                destructible = Boolean.parseBoolean(element.getElementsByTagName("destructible").item(0).
-                        getTextContent());
+                destructible = Boolean.parseBoolean(
+                    element.getElementsByTagName("destructible").item(0).getTextContent()
+                );
                 valid = true;
                 metaxml = Boolean.parseBoolean(element.getElementsByTagName("metaxml").item(0).getTextContent());
                 break;
             }
         }
-
-        return new SMAMetadata(extension, container, member, metadataType,
-                path, destructible, valid, metaxml, data);
+        return new SMAMetadata(
+            extension, container, member, metadataType, path, destructible, valid, metaxml, data
+        );
     }
 }

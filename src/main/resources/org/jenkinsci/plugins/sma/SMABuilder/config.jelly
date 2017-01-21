@@ -16,6 +16,12 @@
         <f:entry title="Test Level" field="testLevel">
             <f:select />
         </f:entry>
+        <f:entry title="Test Class Regex" field="runTestRegex">
+            <f:textbox default="${descriptor.runTestRegex}" />
+        </f:entry>
+        <f:entry title="Test Class Manifest" field="runTestManifest">
+            <f:textbox />
+        </f:entry>
         <f:entry title="Validate Only" field="validateEnabled">
             <f:checkbox />
         </f:entry>

@@ -10,6 +10,7 @@ import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 
@@ -50,27 +51,26 @@ public class SMAGit
                   String diffAgainst,
                   Mode smaMode) throws Exception
     {
-        String pathToRepo = pathToWorkspace + "/.git";
-        File repoDir = new File(pathToRepo);
+        File repoDir = new File(pathToWorkspace + "/.git");
         FileRepositoryBuilder builder = new FileRepositoryBuilder();
-        repository = builder.setGitDir(repoDir).readEnvironment().build();
-        git = new Git(repository);
+        this.repository = builder.setGitDir(repoDir).readEnvironment().build();
+        this.git = new Git(repository);
         this.curCommit = curCommit;
 
-        if (smaMode == Mode.PRB)
-        {
+        try {
+            git.fetch().setRefSpecs(new RefSpec("refs/heads/*:refs/remotes/origin/*")).call();
+        } catch (Exception e) {
+            LOG.warning("Error while fetching ref heads and remotes: " + e.getMessage());
+        }
+        if (smaMode == Mode.PRB) {
             ObjectId branchId = repository.resolve("refs/remotes/origin/" + diffAgainst);
             RevCommit targetCommit = new RevWalk(repository).parseCommit(branchId);
-
             this.prevCommit = targetCommit.getName();
-        }
-        else if (smaMode == Mode.STD)
-        {
+
+        } else if (smaMode == Mode.STD) {
             this.prevCommit = diffAgainst;
         }
-
-        if (smaMode != Mode.INI)
-        {
+        if (smaMode != Mode.INI) {
             getDiffs();
         }
     }
@@ -81,22 +81,18 @@ public class SMAGit
      * @return The ArrayList containing all of the additions in the current commit.
      * @throws IOException
      */
-    public Map<String, byte[]> getNewMetadata() throws Exception
-    {
+    public Map<String, byte[]> getNewMetadata() throws Exception {
         Map<String, byte[]> additions = new HashMap<String, byte[]>();
 
-        for (DiffEntry diff : diffs)
-        {
-            if (diff.getChangeType().toString().equals("ADD"))
-            {
+        for (DiffEntry diff : diffs) {
+            if (diff.getChangeType().toString().equals("ADD")) {
                 String item = SMAUtility.checkMeta(diff.getNewPath());
-                if (!additions.containsKey(item) && item.contains(SOURCEDIR))
-                {
-                    additions.put(diff.getNewPath(), getBlob(diff.getNewPath(), curCommit));
+
+                if (!additions.containsKey(item) && item.contains(SOURCEDIR)) {
+                    additions.put(diff.getNewPath(), getBlob(diff.getNewPath(), getCurCommit()));
                 }
             }
         }
-
         return additions;
     }
 
@@ -109,14 +105,12 @@ public class SMAGit
     {
         Map<String, byte[]> deletions = new HashMap<String, byte[]>();
 
-        for (DiffEntry diff : diffs)
-        {
-            if (diff.getChangeType().toString().equals("DELETE"))
-            {
+        for (DiffEntry diff : diffs) {
+            if (diff.getChangeType().toString().equals("DELETE")) {
                 String item = SMAUtility.checkMeta(diff.getOldPath());
-                if (!deletions.containsKey(item) && item.contains(SOURCEDIR))
-                {
-                    deletions.put(diff.getOldPath(), getBlob(diff.getOldPath(), prevCommit));
+
+                if (!deletions.containsKey(item) && item.contains(SOURCEDIR)) {
+                    deletions.put(diff.getOldPath(), getBlob(diff.getOldPath(), getPrevCommit()));
                 }
             }
         }
@@ -130,18 +124,15 @@ public class SMAGit
      * @return The ArrayList containing the items that were modified (new paths) and added to the repository.
      * @throws IOException
      */
-    public Map<String, byte[]> getUpdatedMetadata() throws Exception
-    {
+    public Map<String, byte[]> getUpdatedMetadata() throws Exception {
         Map<String, byte[]> modifiedMetadata = new HashMap<String, byte[]>();
 
-        for (DiffEntry diff : diffs)
-        {
-            if (diff.getChangeType().toString().equals("MODIFY"))
-            {
+        for (DiffEntry diff : diffs) {
+            if (diff.getChangeType().toString().equals("MODIFY")) {
                 String item = SMAUtility.checkMeta(diff.getNewPath());
-                if (!modifiedMetadata.containsKey(item) && item.contains(SOURCEDIR))
-                {
-                    modifiedMetadata.put(diff.getNewPath(), getBlob(diff.getNewPath(), curCommit));
+
+                if (!modifiedMetadata.containsKey(item) && item.contains(SOURCEDIR)) {
+                    modifiedMetadata.put(diff.getNewPath(), getBlob(diff.getNewPath(), getCurCommit()));
                 }
             }
         }
@@ -153,22 +144,18 @@ public class SMAGit
      *
      * @return ArrayList containing the items that were modified (old paths).
      */
-    public Map<String, byte[]> getOriginalMetadata() throws Exception
-    {
+    public Map<String, byte[]> getOriginalMetadata() throws Exception {
         Map<String, byte[]> originalMetadata = new HashMap<String, byte[]>();
 
-        for (DiffEntry diff : diffs)
-        {
-            if (diff.getChangeType().toString().equals("MODIFY"))
-            {
+        for (DiffEntry diff : diffs) {
+            if (diff.getChangeType().toString().equals("MODIFY")) {
                 String item = SMAUtility.checkMeta(diff.getOldPath());
-                if (!originalMetadata.containsKey(item) && item.contains(SOURCEDIR))
-                {
-                    originalMetadata.put(diff.getOldPath(), getBlob(diff.getOldPath(), prevCommit));
+
+                if (!originalMetadata.containsKey(item) && item.contains(SOURCEDIR)) {
+                    originalMetadata.put(diff.getOldPath(), getBlob(diff.getOldPath(), getPrevCommit()));
                 }
             }
         }
-
         return originalMetadata;
     }
 
@@ -180,31 +167,26 @@ public class SMAGit
      * @return
      * @throws Exception
      */
-    public byte[] getBlob(String repoItem, String commit) throws Exception
-    {
+    public byte[] getBlob(String repoItem, String commit) throws Exception {
         byte[] data;
 
-        String parentPath = repository.getDirectory().getParent();
-
         ObjectId commitId = repository.resolve(commit);
+        ObjectReader reader = null;
+        try {
+            reader = repository.newObjectReader();
+            RevWalk revWalk = new RevWalk(reader);
+            RevCommit revCommit = revWalk.parseCommit(commitId);
+            RevTree tree = revCommit.getTree();
+            TreeWalk treeWalk = TreeWalk.forPath(reader, repoItem, tree);
 
-        ObjectReader reader = repository.newObjectReader();
-        RevWalk revWalk = new RevWalk(reader);
-        RevCommit revCommit = revWalk.parseCommit(commitId);
-        RevTree tree = revCommit.getTree();
-        TreeWalk treeWalk = TreeWalk.forPath(reader, repoItem, tree);
-
-        if (treeWalk != null)
-        {
-            data = reader.open(treeWalk.getObjectId(0)).getBytes();
+            if (treeWalk != null) {
+                data = reader.open(treeWalk.getObjectId(0)).getBytes();
+            } else {
+                throw new IllegalStateException("Did not find expected file '" + repoItem + "'");
+            }
+        } finally {
+            if (null != reader) { reader.close(); }
         }
-        else
-        {
-            throw new IllegalStateException("Did not find expected file '" + repoItem + "'");
-        }
-
-        reader.close();
-
         return data;
     }
 
@@ -214,37 +196,33 @@ public class SMAGit
      * @return Map containing the full path and the data for all items in the repository.
      * @throws IOException
      */
-    public Map<String, byte[]> getAllMetadata() throws Exception
-    {
+    public Map<String, byte[]> getAllMetadata() throws Exception {
         Map<String, byte[]> contents = new HashMap<String, byte[]>();
-        ObjectReader reader = repository.newObjectReader();
-        ObjectId commitId = repository.resolve(curCommit);
-        RevWalk revWalk = new RevWalk(reader);
-        RevCommit commit = revWalk.parseCommit(commitId);
-        RevTree tree = commit.getTree();
-        TreeWalk treeWalk = new TreeWalk(reader);
-        treeWalk.addTree(tree);
-        treeWalk.setRecursive(false);
+        ObjectReader reader = null;
+        try {
+            reader = repository.newObjectReader();
+            ObjectId commitId = repository.resolve(getCurCommit());
+            RevWalk revWalk = new RevWalk(reader);
+            RevCommit commit = revWalk.parseCommit(commitId);
+            RevTree tree = commit.getTree();
+            TreeWalk treeWalk = new TreeWalk(reader);
+            treeWalk.addTree(tree);
+            treeWalk.setRecursive(false);
 
-        while (treeWalk.next())
-        {
-            if (treeWalk.isSubtree())
-            {
-                treeWalk.enterSubtree();
-            }
-            else
-            {
-                String member = treeWalk.getPathString();
-                if (member.contains(SOURCEDIR))
-                {
-                    byte[] data = getBlob(member, curCommit);
-                    contents.put(member, data);
+            while (treeWalk.next()) {
+                if (treeWalk.isSubtree()) {
+                    treeWalk.enterSubtree();
+                } else {
+                    String member = treeWalk.getPathString();
+                    if (member.contains(SOURCEDIR)) {
+                        byte[] data = getBlob(member, getCurCommit());
+                        contents.put(member, data);
+                    }
                 }
             }
+        } finally {
+            if (null != reader) { reader.close(); }
         }
-
-        reader.close();
-
         return contents;
     }
 
@@ -266,28 +244,26 @@ public class SMAGit
         File packageXml;
 
         // Only need to update the manifest if we have additions or deletions
-        if (!getNewMetadata().isEmpty() || !getDeletedMetadata().isEmpty())
-        {
+        if (!getNewMetadata().isEmpty() || !getDeletedMetadata().isEmpty()) {
             // Fine the existing package.xml file in the repository
             String packageLocation = SMAUtility.findPackage(new File(workspace));
 
-            if (!packageLocation.isEmpty())
-            {
+            if (!packageLocation.isEmpty()) {
                 packageXml = new File(packageLocation);
-            }
-            else
-            {
+            } else {
                 // We couldn't find one, so just create one.
                 packageXml = new File(workspace + "/unpackaged/package.xml");
                 packageXml.getParentFile().mkdirs();
                 packageXml.createNewFile();
             }
-
             // Write the manifest to the location of the package.xml in the fs
-            FileOutputStream fos = new FileOutputStream(packageXml, false);
-            fos.write(manifest.getPackage().getBytes());
-            fos.close();
-
+            FileOutputStream fos = null;
+            try {
+                fos = new FileOutputStream(packageXml, false);
+                fos.write(manifest.getPackage().getBytes());
+            } finally {
+                if (null != fos) { fos.close(); }
+            }
             String path = packageXml.getPath();
 
             // Commit the updated package.xml file to the repository
@@ -300,18 +276,15 @@ public class SMAGit
         return false;
     }
 
-    public Git getRepo()
-    {
+    public Git getRepo() {
         return git;
     }
 
-    public String getPrevCommit()
-    {
+    public String getPrevCommit() {
         return prevCommit;
     }
 
-    public String getCurCommit()
-    {
+    public String getCurCommit() {
         return curCommit;
     }
 
@@ -321,11 +294,10 @@ public class SMAGit
      * @return List that contains DiffEntry objects of the changes made between the previous and current commits.
      * @throws Exception
      */
-    private void getDiffs() throws Exception
-    {
+    private void getDiffs() throws Exception {
         OutputStream out = new ByteArrayOutputStream();
-        CanonicalTreeParser oldTree = getTree(prevCommit);
-        CanonicalTreeParser newTree = getTree(curCommit);
+        CanonicalTreeParser oldTree = getTree(getPrevCommit());
+        CanonicalTreeParser newTree = getTree(getCurCommit());
         DiffCommand diff = git.diff().setOutputStream(out).setOldTree(oldTree).setNewTree(newTree);
         diffs = diff.call();
     }
@@ -337,8 +309,7 @@ public class SMAGit
      * @return CanonicalTreeParser representing the tree for the commit.
      * @throws IOException
      */
-    private CanonicalTreeParser getTree(String commit) throws IOException
-    {
+    private CanonicalTreeParser getTree(String commit) throws IOException {
         CanonicalTreeParser tree = new CanonicalTreeParser();
         ObjectReader reader = repository.newObjectReader();
         ObjectId head = repository.resolve(commit + "^{tree}");

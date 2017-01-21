@@ -3,12 +3,12 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>1.642.4</version>
+        <version>1.616</version>
     </parent>
 
     <artifactId>salesforce-migration-assistant-plugin</artifactId>
     <name>Salesforce Migration Assistant</name>
-    <version>2.2.4-SNAPSHOT</version>
+    <version>3.0-SNAPSHOT</version>
     <packaging>hpi</packaging>
 
     <developers>
@@ -16,6 +16,11 @@
             <id>aesanch2</id>
             <name>Anthony Sanchez</name>
             <email>senninha09@gmail.com</email>
+        </developer>
+        <developer>
+            <id>rvelzeboer</id>
+            <name>Ron Velzeboer</name>
+            <email>rvelzeboer@kelendria.com</email>
         </developer>
     </developers>
 
@@ -87,28 +92,38 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.11</version>
+            <version>4.12</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>org.json</artifactId>
-            <version>chargebee-1.0</version>
+            <version>2.0</version>
         </dependency>
         <dependency>
             <groupId>com.force.api</groupId>
             <artifactId>force-wsc</artifactId>
-            <version>35.2.0</version>
+            <version>36.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.force.api</groupId>
             <artifactId>force-partner-api</artifactId>
-            <version>35.0.0</version>
+            <version>36.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.force.api</groupId>
             <artifactId>force-metadata-api</artifactId>
-            <version>35.0.0</version>
+            <version>36.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <version>1.7.0</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-configuration</groupId>
+            <artifactId>commons-configuration</artifactId>
+            <version>1.10</version>
         </dependency>
     </dependencies>
 </project>

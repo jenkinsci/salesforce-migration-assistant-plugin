@@ -80,14 +80,9 @@ public class SMAConnection
                 initConfig.setProxyPassword(proxyPass);
             }
         }
-
-
-
         partnerConnection = Connector.newConnection(initConfig);
 
-        LoginResult loginResult = new LoginResult();
-
-        loginResult = partnerConnection.login(initConfig.getUsername(), initConfig.getPassword());
+        LoginResult loginResult = partnerConnection.login(initConfig.getUsername(), initConfig.getPassword());
         metadataConfig.setServiceEndpoint(loginResult.getMetadataServerUrl());
         metadataConfig.setSessionId(loginResult.getSessionId());
         metadataConfig.setProxy(initConfig.getProxy());
@@ -121,21 +116,14 @@ public class SMAConnection
         deployOptions.setCheckOnly(validateOnly);
 
         // We need to make sure there are actually tests supplied for RunSpecifiedTests...
-        if (testLevel.equals(TestLevel.RunSpecifiedTests))
-        {
-            if (specifiedTests.length > 0)
-            {
+        if (testLevel.equals(TestLevel.RunSpecifiedTests)) {
+            if (specifiedTests.length > 0) {
                 deployOptions.setTestLevel(testLevel);
                 deployOptions.setRunTests(specifiedTests);
-            }
-            else
-            {
+            } else {
                 deployOptions.setTestLevel(TestLevel.NoTestRun);
             }
-        }
-        // And that we should even set a TestLevel
-        else if (containsApex)
-        {
+        } else if (containsApex) { // And that we should even set a TestLevel
             deployOptions.setTestLevel(testLevel);
         }
 
@@ -146,33 +134,26 @@ public class SMAConnection
         int maxPoll = Integer.valueOf(maxPollString);
         long pollWait = Long.valueOf(pollWaitString);
         boolean fetchDetails;
-        do
-        {
+        do {
             Thread.sleep(pollWait);
 
-            if (poll++ > maxPoll)
-            {
+            if (poll++ > maxPoll) {
                 throw new Exception("[SMA] Request timed out. You can check the results later by using this AsyncResult Id: " + asyncResultId);
             }
-
             // Only fetch the details every three poll attempts
             fetchDetails = (poll % 3 == 0);
             deployResult = metadataConnection.checkDeployStatus(asyncResultId, fetchDetails);
-        }
-        while (!deployResult.isDone());
+        } while (!deployResult.isDone());
 
         // This is more to do with errors related to Salesforce. Actual deployment failures are not returned as error codes.
-        if (!deployResult.isSuccess() && deployResult.getErrorStatusCode() != null)
-        {
+        if (!deployResult.isSuccess() && deployResult.getErrorStatusCode() != null) {
             throw new Exception(deployResult.getErrorStatusCode() + " msg:" + deployResult.getErrorMessage());
         }
 
-        if (!fetchDetails)
-        {
+        if (!fetchDetails) {
             // Get the final result with details if we didn't do it in the last attempt.
             deployResult = metadataConnection.checkDeployStatus(asyncResultId, true);
         }
-
         deployDetails = deployResult.getDetails();
 
         return deployResult.isSuccess();
@@ -187,11 +168,11 @@ public class SMAConnection
     {
         RunTestsResult rtr = deployDetails.getRunTestResult();
         StringBuilder buf = new StringBuilder();
-        if (rtr.getFailures().length > 0)
-        {
+
+        if (rtr.getFailures().length > 0) {
             buf.append("[SMA] Test Failures\n");
-            for (RunTestFailure failure : rtr.getFailures())
-            {
+
+            for (RunTestFailure failure : rtr.getFailures()) {
                 String n = (failure.getNamespace() == null ? "" :
                         (failure.getNamespace() + ".")) + failure.getName();
                 buf.append("Test failure, method: " + n + "." +
@@ -200,7 +181,6 @@ public class SMAConnection
                         failure.getStackTrace() + "\n\n");
             }
         }
-
         return buf.toString();
     }
 
@@ -213,30 +193,20 @@ public class SMAConnection
     {
         DeployMessage messages[] = deployDetails.getComponentFailures();
         StringBuilder buf = new StringBuilder();
-        for (DeployMessage message : messages)
-        {
-            if (!message.isSuccess())
-            {
+
+        for (DeployMessage message : messages) {
+            if (!message.isSuccess()) {
                 buf.append("[SMA] Component Failures\n");
-                if (buf.length() == 0)
-                {
-                    buf = new StringBuilder("\nFailures:\n");
-                }
 
-                String loc = (message.getLineNumber() == 0 ? "" :
-                        ("(" + message.getLineNumber() + "," +
-                                message.getColumnNumber() + ")"));
-
-                if (loc.length() == 0
-                        && !message.getFileName().equals(message.getFullName()))
-                {
+                String loc = null;
+                if (message.getLineNumber() > 0) {
+                    loc = "(" + message.getLineNumber() + "," + message.getColumnNumber() + ")";
+                } else if (!message.getFileName().equals(message.getFullName())) {
                     loc = "(" + message.getFullName() + ")";
                 }
-                buf.append(message.getFileName() + loc + ":" +
-                        message.getProblem()).append('\n');
+                buf.append(message.getFileName() + loc + ":" + message.getProblem()).append('\n');
             }
         }
-
         return buf.toString();
     }
 
@@ -253,25 +223,22 @@ public class SMAConnection
 
         //Get the individual coverage results
         CodeCoverageResult[] ccresult = rtr.getCodeCoverage();
-        if (ccresult.length > 0);
-        {
+
+        if (ccresult.length > 0) {
             buf.append("[SMA] Code Coverage Results\n");
 
             double loc = 0;
             double locUncovered = 0;
-            for (CodeCoverageResult ccr : ccresult)
-            {
+            for (CodeCoverageResult ccr : ccresult) {
                 buf.append(ccr.getName() + ".cls");
                 buf.append(" -- ");
                 loc = ccr.getNumLocations();
                 locUncovered = ccr.getNumLocationsNotCovered();
 
                 double coverage = 0;
-                if (loc > 0)
-                {
+                if (loc > 0) {
                     coverage = calculateCoverage(locUncovered, loc);
                 }
-
                 buf.append(df.format(coverage) + "%\n");
             }
 
@@ -280,7 +247,6 @@ public class SMAConnection
             buf.append("\nTotal code coverage for this deployment -- ");
             buf.append(df.format(totalCoverage) + "%\n");
         }
-
         return buf.toString();
     }
 
@@ -294,14 +260,14 @@ public class SMAConnection
         RunTestsResult rtr = deployDetails.getRunTestResult();
         StringBuilder buf = new StringBuilder();
         CodeCoverageWarning[] ccwarn = rtr.getCodeCoverageWarnings();
-        if (ccwarn.length > 0);
-        {
+
+        if (ccwarn.length > 0) {
             buf.append("[SMA] Code Coverage Warnings\n");
-            for (CodeCoverageWarning ccw : ccwarn)
-            {
+
+            for (CodeCoverageWarning ccw : ccwarn) {
                 buf.append("Code coverage issue");
-                if (ccw.getName() != null)
-                {
+
+                if (ccw.getName() != null) {
                     String n = (ccw.getNamespace() == null ? "" :
                             (ccw.getNamespace() + ".")) + ccw.getName();
                     buf.append(", class: " + n);
@@ -309,7 +275,6 @@ public class SMAConnection
                 buf.append(" -- " + ccw.getMessage() + "\n");
             }
         }
-
         return buf.toString();
     }
 
@@ -318,18 +283,14 @@ public class SMAConnection
      *
      * @return
      */
-    public DeployDetails getDeployDetails()
-    {
-        return deployDetails;
-    }
+    public DeployDetails getDeployDetails() { return deployDetails; }
 
     /**
      * Sets the DeployDetails for this deployment. For unit tests
      *
      * @param deployDetails
      */
-    public void setDeployDetails(DeployDetails deployDetails)
-    {
+    public void setDeployDetails(DeployDetails deployDetails) {
         this.deployDetails = deployDetails;
     }
 
@@ -339,27 +300,21 @@ public class SMAConnection
      * @param ccresult
      * @return
      */
-    private Double getTotalCodeCoverage(CodeCoverageResult[] ccresult)
-    {
+    private Double getTotalCodeCoverage(CodeCoverageResult[] ccresult) {
         double totalLoc = 0;
         double totalLocUncovered = 0;
 
-        if (ccresult.length > 0);
-        {
-            for (CodeCoverageResult ccr : ccresult)
-            {
+        if (ccresult.length > 0) {
+            for (CodeCoverageResult ccr : ccresult) {
                 totalLoc += ccr.getNumLocations();
                 totalLocUncovered += ccr.getNumLocationsNotCovered();
             }
         }
-
         // Determine the coverage
         double coverage = 0;
-        if (totalLoc > 0)
-        {
+        if (totalLoc > 0) {
             coverage = calculateCoverage(totalLocUncovered, totalLoc);
         }
-
         return coverage;
     }
 
@@ -370,8 +325,7 @@ public class SMAConnection
      * @param totalLoc
      * @return
      */
-    private double calculateCoverage(double totalLocUncovered, double totalLoc)
-    {
+    private double calculateCoverage(double totalLocUncovered, double totalLoc) {
         return (1 - (totalLocUncovered / totalLoc)) * 100;
     }
 }
