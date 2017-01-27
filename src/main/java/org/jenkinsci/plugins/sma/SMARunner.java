@@ -32,15 +32,17 @@ public class SMARunner {
      * @param prTargetBranch
      * @throws Exception
      */
-    public SMARunner(EnvVars jobVariables, String prTargetBranch) throws Exception {
+    public SMARunner(EnvVars jobVariables, String prTargetBranch, SMAJenkinsCIOrgSettings orgSettings) throws Exception {
         // Get envvars to initialize SMAGit
         Boolean shaOverride = false;
-        currentCommit = jobVariables.get("GIT_COMMIT");
+        this.currentCommit = jobVariables.get("GIT_COMMIT");
         this.pathToWorkspace = jobVariables.get("WORKSPACE");
         String jobName = jobVariables.get("JOB_NAME");
         String buildNumber = jobVariables.get("BUILD_NUMBER");
 
-        if (jobVariables.containsKey("GIT_PREVIOUS_SUCCESSFUL_COMMIT")) {
+        if (null != orgSettings && null != orgSettings.getGitSha1()) {
+            previousCommit = orgSettings.getGitSha1();
+        } else if (null == orgSettings && jobVariables.containsKey("GIT_PREVIOUS_SUCCESSFUL_COMMIT")) {
             previousCommit = jobVariables.get("GIT_PREVIOUS_SUCCESSFUL_COMMIT");
         } else {
             deployAll = true;
@@ -58,7 +60,8 @@ public class SMARunner {
         if (!prTargetBranch.isEmpty() && !shaOverride) {
             deployAll = false;
             git = new SMAGit(pathToWorkspace, currentCommit, prTargetBranch, SMAGit.Mode.PRB);
-
+            previousCommit = git.getPrevCommit();
+            
         } else if (deployAll) { // Configure for all the metadata
             git = new SMAGit(pathToWorkspace, currentCommit, null, SMAGit.Mode.INI);
 
@@ -156,7 +159,7 @@ public class SMARunner {
      */
     private Map<String, byte[]> getData(List<SMAMetadata> metadatas, String commit) throws Exception {
         Map<String, byte[]> data = new HashMap<String, byte[]>();
-
+        LOG.warning("getData");
         for (SMAMetadata metadata : metadatas) {
             data.put(metadata.toString(), metadata.getBody());
 
@@ -250,9 +253,8 @@ public class SMARunner {
     private String getSpecifiedTestsByRegex(String className, Set<String> allApexClasses, SMABuilder builder) {
         String testRegex = builder.getRunTestRegex();
 
-        if (null == testRegex || testRegex.isEmpty()) {
-            return null;
-        }
+        if (null == testRegex || testRegex.isEmpty()) { return null; }
+
         if (className.matches(testRegex)) {
             return className;
         }
@@ -275,5 +277,9 @@ public class SMARunner {
             rollbackLocationFile.getParentFile().mkdirs();
         }
         return rollbackLocation;
+    }
+
+    public String getCurrentCommit() {
+        return this.currentCommit;
     }
 }

@@ -28,5 +28,10 @@
         <f:entry title="Pull Request Target" field="prTargetBranch">
             <f:textbox />
         </f:entry>
+        <f:advanced>
+            <f:entry title="Use Org Custom Settings" field="useCustomSettings" >
+                <f:checkbox />
+            </f:entry>
+        </f:advanced>
     </f:block>
 </j:jelly>

@@ -24,8 +24,7 @@ import java.util.logging.Logger;
  * Wrapper for git interactions using jGit.
  *
  */
-public class SMAGit
-{
+public class SMAGit {
     public enum Mode { STD, INI, PRB }
 
     private final String SOURCEDIR = "src/";
@@ -57,12 +56,8 @@ public class SMAGit
         this.git = new Git(repository);
         this.curCommit = curCommit;
 
-        try {
-            git.fetch().setRefSpecs(new RefSpec("refs/heads/*:refs/remotes/origin/*")).call();
-        } catch (Exception e) {
-            LOG.warning("Error while fetching ref heads and remotes: " + e.getMessage());
-        }
         if (smaMode == Mode.PRB) {
+            updateLocalRefSpecs(this.git);
             ObjectId branchId = repository.resolve("refs/remotes/origin/" + diffAgainst);
             RevCommit targetCommit = new RevWalk(repository).parseCommit(branchId);
             this.prevCommit = targetCommit.getName();
@@ -72,6 +67,19 @@ public class SMAGit
         }
         if (smaMode != Mode.INI) {
             getDiffs();
+        }
+    }
+
+    /**
+     *
+     * @param git Git
+     * @throws Exception
+     */
+    private static void updateLocalRefSpecs(Git git) throws Exception {
+        try {
+            git.fetch().setRefSpecs(new RefSpec("refs/heads/*:refs/remotes/origin/*")).call();
+        } catch (Exception e) {
+            LOG.warning("Error while fetching ref heads and remotes: " + e.getMessage());
         }
     }
 
