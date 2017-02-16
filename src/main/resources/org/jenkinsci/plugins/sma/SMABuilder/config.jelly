@@ -16,11 +16,22 @@
         <f:entry title="Test Level" field="testLevel">
             <f:select />
         </f:entry>
+        <f:entry title="Test Class Regex" field="runTestRegex">
+            <f:textbox default="${descriptor.runTestRegex}" />
+        </f:entry>
+        <f:entry title="Test Class Manifest" field="runTestManifest">
+            <f:textbox />
+        </f:entry>
         <f:entry title="Validate Only" field="validateEnabled">
             <f:checkbox />
         </f:entry>
         <f:entry title="Pull Request Target" field="prTargetBranch">
             <f:textbox />
         </f:entry>
+        <f:advanced>
+            <f:entry title="Use Org Custom Settings" field="useCustomSettings" >
+                <f:checkbox />
+            </f:entry>
+        </f:advanced>
     </f:block>
 </j:jelly>

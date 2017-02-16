@@ -21,6 +21,7 @@ public class SMAPackage
     private List<SMAMetadata> contents;
     private boolean destructiveChange;
     private Package packageManifest;
+    private final String METADATA_URI = "http://soap.sforce.com/2006/04/metadata";
 
     /**
      * Constructor for SMAPackage
@@ -37,31 +38,17 @@ public class SMAPackage
 
         packageManifest = new Package();
         packageManifest.setVersion(SMAMetadataTypes.getAPIVersion());
-        packageManifest.setTypes((PackageTypeMembers[]) determinePackageTypes().toArray(new PackageTypeMembers[0]));
+        packageManifest.setTypes(determinePackageTypes().toArray(new PackageTypeMembers[0]));
     }
 
-    public List<SMAMetadata> getContents()
-    {
-        return contents;
-    }
+    public List<SMAMetadata> getContents() { return contents; }
 
     /**
      * Returns the name of the manifest file for this SMAPackage
      * @return
      */
-    public String getName()
-    {
-        String name;
-
-        if (destructiveChange)
-        {
-            name = "destructiveChanges.xml";
-        } else
-        {
-            name = "package.xml";
-        }
-
-        return name;
+    public String getName() {
+        return destructiveChange ? "destructiveChanges.xml" : "package.xml";
     }
 
     /**
@@ -70,17 +57,19 @@ public class SMAPackage
      * @return String(packageStream.toByteArray())
      * @throws Exception
      */
-    public String getPackage() throws Exception
-    {
+    public String getPackage() throws Exception {
         TypeMapper typeMapper = new TypeMapper();
         ByteArrayOutputStream packageStream = new ByteArrayOutputStream();
-        QName packageQName = new QName("http://soap.sforce.com/2006/04/metadata", "Package");
-        XmlOutputStream xmlOutputStream = new XmlOutputStream(packageStream, true);
-        xmlOutputStream.setPrefix("", "http://soap.sforce.com/2006/04/metadata");
-        xmlOutputStream.setPrefix("xsi", "http://www.w3.org/2001/XMLSchema-instance");
-        packageManifest.write(packageQName, xmlOutputStream, typeMapper);
-        xmlOutputStream.close();
-
+        QName packageQName = new QName(METADATA_URI, "Package");
+        XmlOutputStream xmlOutputStream = null;
+        try {
+            xmlOutputStream = new XmlOutputStream(packageStream, true);
+            xmlOutputStream.setPrefix("", METADATA_URI);
+            xmlOutputStream.setPrefix("xsi", "http://www.w3.org/2001/XMLSchema-instance");
+            packageManifest.write(packageQName, xmlOutputStream, typeMapper);
+        } finally {
+            if (null != xmlOutputStream) { xmlOutputStream.close(); }
+        }
         return new String(packageStream.toByteArray());
     }
 
@@ -90,18 +79,13 @@ public class SMAPackage
      * @return containsApex
      */
     public boolean containsApex() {
-        boolean containsApex = false;
-
         for (SMAMetadata thisMetadata : contents) {
             if (thisMetadata.getMetadataType().equals("ApexClass")
-                    || thisMetadata.getMetadataType().equals("ApexTrigger"))
-            {
-                containsApex = true;
-                break;
+                    || thisMetadata.getMetadataType().equals("ApexTrigger")) {
+                return true;
             }
         }
-
-        return containsApex;
+        return false;
     }
 
     /**
@@ -109,39 +93,28 @@ public class SMAPackage
      *
      * @return
      */
-    private List<PackageTypeMembers> determinePackageTypes()
-    {
+    private List<PackageTypeMembers> determinePackageTypes() {
         List<PackageTypeMembers> types = new ArrayList<PackageTypeMembers>();
         Map<String, List<String>> contentsByType = new HashMap<String, List<String>>();
 
         // Sort the metadata objects by metadata type
-        for (SMAMetadata mdObject : contents)
-        {
-            if (destructiveChange && !mdObject.isDestructible())
-            {
+        for (SMAMetadata mdObject : contents) {
+            if (destructiveChange && !mdObject.isDestructible()) {
                 // Don't include non destructible metadata in destructiveChanges
                 continue;
             }
-            else if (contentsByType.containsKey(mdObject.getMetadataType()))
-            {
-                contentsByType.get(mdObject.getMetadataType()).add(mdObject.getMember());
-            } else
-            {
-                List<String> memberList = new ArrayList<String>();
-                memberList.add(mdObject.getMember());
-                contentsByType.put(mdObject.getMetadataType(), memberList);
+            if (!contentsByType.containsKey(mdObject.getMetadataType())) {
+                contentsByType.put(mdObject.getMetadataType(), new ArrayList<String>());
             }
+            contentsByType.get(mdObject.getMetadataType()).add(mdObject.getMember());
         }
-
         // Put the members into list of PackageTypeMembers
-        for (String metadataType : contentsByType.keySet())
-        {
+        for (String metadataType : contentsByType.keySet()) {
             PackageTypeMembers members = new PackageTypeMembers();
             members.setName(metadataType);
-            members.setMembers((String[]) contentsByType.get(metadataType).toArray(new String[0]));
+            members.setMembers(contentsByType.get(metadataType).toArray(new String[0]));
             types.add(members);
         }
-
         return types;
     }
 }

@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<Config>
+    <mappings>
+        <class>test1</class>
+        <tests>TST_test1</tests>
+        <tests>TST_test2</tests>
+        <tests></tests>
+    </mappings>
+    <mappings>
+        <class>test2</class>
+        <tests>TST_test2</tests>
+    </mappings>
+    <mappings>
+        <class>test3</class>
+        <tests></tests>
+        <tests></tests>
+    </mappings>
+    <mappings>
+        <class>test4</class>
+    </mappings>
+</Config>

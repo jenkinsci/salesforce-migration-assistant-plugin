@@ -1,0 +1,19 @@
+<br>
+    Enter the Manifest XML filename which resides inside of your repository. This manifest allows for more fine-grained controll of which Apex test classes should be run for a particular class.
+    <br/><br/>
+    The Manifest XML should be formatted like:
+    <br/><br/>
+    &lt;?xml version=&#34;1.0&#34; ?&gt;&#10;<br/>
+    &lt;Config&gt;&#10;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&lt;mappings&gt;&#10;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;class&gt;HNDL_Account&lt;/class&gt;&#10;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;tests&gt;TST_HNDL_Account&lt;/tests&gt;&#10;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;tests&gt;TST_VAT&lt;/tests&gt;&#10;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;tests&gt;&hellip;&lt;/tests&gt;&#10;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&lt;/mappings&gt;&#10;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&lt;mappings&gt;&#10;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;class&gt;&hellip;&lt;/class&gt;&#10;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;tests&gt;&hellip;&lt;/tests&gt;&#10;<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&lt;/mappings&gt;&#10;<br/>
+    &lt;/Config&gt;
+</div>

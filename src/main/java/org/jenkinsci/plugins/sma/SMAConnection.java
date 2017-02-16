@@ -1,22 +1,24 @@
 package org.jenkinsci.plugins.sma;
 
 import com.sforce.soap.metadata.*;
+import com.sforce.soap.metadata.Error;
+import com.sforce.soap.metadata.FieldType;
+import com.sforce.soap.partner.*;
 import com.sforce.soap.partner.Connector;
-import com.sforce.soap.partner.LoginResult;
-import com.sforce.soap.partner.PartnerConnection;
+import com.sforce.soap.partner.sobject.SObject;
+import com.sforce.ws.ConnectionException;
 import com.sforce.ws.ConnectorConfig;
 
 import java.io.ByteArrayOutputStream;
 import java.text.DecimalFormat;
-import java.util.logging.Level;
+import java.util.NoSuchElementException;
 import java.util.logging.Logger;
 
 /**
  * This class handles the API connection and actions against the Salesforce instance
  *
  */
-public class SMAConnection
-{
+public class SMAConnection {
     private static final Logger LOG = Logger.getLogger(SMAConnection.class.getName());
 
     private final ConnectorConfig initConfig = new ConnectorConfig();
@@ -80,14 +82,9 @@ public class SMAConnection
                 initConfig.setProxyPassword(proxyPass);
             }
         }
+        PartnerConnection partnerTmpConnection = Connector.newConnection(initConfig);
 
-
-
-        partnerConnection = Connector.newConnection(initConfig);
-
-        LoginResult loginResult = new LoginResult();
-
-        loginResult = partnerConnection.login(initConfig.getUsername(), initConfig.getPassword());
+        LoginResult loginResult = partnerTmpConnection.login(initConfig.getUsername(), initConfig.getPassword());
         metadataConfig.setServiceEndpoint(loginResult.getMetadataServerUrl());
         metadataConfig.setSessionId(loginResult.getSessionId());
         metadataConfig.setProxy(initConfig.getProxy());
@@ -95,6 +92,15 @@ public class SMAConnection
         metadataConfig.setProxyPassword(initConfig.getProxyPassword());
 
         metadataConnection = new MetadataConnection(metadataConfig);
+
+        ConnectorConfig signedInConfig = new ConnectorConfig();
+        signedInConfig.setSessionId(loginResult.getSessionId());
+        signedInConfig.setServiceEndpoint(loginResult.getServerUrl());
+        partnerConnection = Connector.newConnection(signedInConfig);
+    }
+
+    public PartnerConnection getPartnerConnection() {
+        return this.partnerConnection;
     }
 
     /**
@@ -121,21 +127,14 @@ public class SMAConnection
         deployOptions.setCheckOnly(validateOnly);
 
         // We need to make sure there are actually tests supplied for RunSpecifiedTests...
-        if (testLevel.equals(TestLevel.RunSpecifiedTests))
-        {
-            if (specifiedTests.length > 0)
-            {
+        if (testLevel.equals(TestLevel.RunSpecifiedTests)) {
+            if (specifiedTests.length > 0) {
                 deployOptions.setTestLevel(testLevel);
                 deployOptions.setRunTests(specifiedTests);
-            }
-            else
-            {
+            } else {
                 deployOptions.setTestLevel(TestLevel.NoTestRun);
             }
-        }
-        // And that we should even set a TestLevel
-        else if (containsApex)
-        {
+        } else if (containsApex) { // And that we should even set a TestLevel
             deployOptions.setTestLevel(testLevel);
         }
 
@@ -146,33 +145,26 @@ public class SMAConnection
         int maxPoll = Integer.valueOf(maxPollString);
         long pollWait = Long.valueOf(pollWaitString);
         boolean fetchDetails;
-        do
-        {
+        do {
             Thread.sleep(pollWait);
 
-            if (poll++ > maxPoll)
-            {
+            if (poll++ > maxPoll) {
                 throw new Exception("[SMA] Request timed out. You can check the results later by using this AsyncResult Id: " + asyncResultId);
             }
-
             // Only fetch the details every three poll attempts
             fetchDetails = (poll % 3 == 0);
             deployResult = metadataConnection.checkDeployStatus(asyncResultId, fetchDetails);
-        }
-        while (!deployResult.isDone());
+        } while (!deployResult.isDone());
 
         // This is more to do with errors related to Salesforce. Actual deployment failures are not returned as error codes.
-        if (!deployResult.isSuccess() && deployResult.getErrorStatusCode() != null)
-        {
+        if (!deployResult.isSuccess() && deployResult.getErrorStatusCode() != null) {
             throw new Exception(deployResult.getErrorStatusCode() + " msg:" + deployResult.getErrorMessage());
         }
 
-        if (!fetchDetails)
-        {
+        if (!fetchDetails) {
             // Get the final result with details if we didn't do it in the last attempt.
             deployResult = metadataConnection.checkDeployStatus(asyncResultId, true);
         }
-
         deployDetails = deployResult.getDetails();
 
         return deployResult.isSuccess();
@@ -183,15 +175,14 @@ public class SMAConnection
      *
      * @return
      */
-    public String getTestFailures()
-    {
+    public String getTestFailures() {
         RunTestsResult rtr = deployDetails.getRunTestResult();
         StringBuilder buf = new StringBuilder();
-        if (rtr.getFailures().length > 0)
-        {
+
+        if (rtr.getFailures().length > 0) {
             buf.append("[SMA] Test Failures\n");
-            for (RunTestFailure failure : rtr.getFailures())
-            {
+
+            for (RunTestFailure failure : rtr.getFailures()) {
                 String n = (failure.getNamespace() == null ? "" :
                         (failure.getNamespace() + ".")) + failure.getName();
                 buf.append("Test failure, method: " + n + "." +
@@ -200,7 +191,6 @@ public class SMAConnection
                         failure.getStackTrace() + "\n\n");
             }
         }
-
         return buf.toString();
     }
 
@@ -209,34 +199,23 @@ public class SMAConnection
      *
      * @return
      */
-    public String getComponentFailures()
-    {
+    public String getComponentFailures() {
         DeployMessage messages[] = deployDetails.getComponentFailures();
         StringBuilder buf = new StringBuilder();
-        for (DeployMessage message : messages)
-        {
-            if (!message.isSuccess())
-            {
+
+        for (DeployMessage message : messages) {
+            if (!message.isSuccess()) {
                 buf.append("[SMA] Component Failures\n");
-                if (buf.length() == 0)
-                {
-                    buf = new StringBuilder("\nFailures:\n");
-                }
 
-                String loc = (message.getLineNumber() == 0 ? "" :
-                        ("(" + message.getLineNumber() + "," +
-                                message.getColumnNumber() + ")"));
-
-                if (loc.length() == 0
-                        && !message.getFileName().equals(message.getFullName()))
-                {
+                String loc = null;
+                if (message.getLineNumber() > 0) {
+                    loc = "(" + message.getLineNumber() + "," + message.getColumnNumber() + ")";
+                } else if (!message.getFileName().equals(message.getFullName())) {
                     loc = "(" + message.getFullName() + ")";
                 }
-                buf.append(message.getFileName() + loc + ":" +
-                        message.getProblem()).append('\n');
+                buf.append(message.getFileName() + loc + ":" + message.getProblem()).append('\n');
             }
         }
-
         return buf.toString();
     }
 
@@ -245,33 +224,29 @@ public class SMAConnection
      *
      * @return
      */
-    public String getCodeCoverage()
-    {
+    public String getCodeCoverage() {
         RunTestsResult rtr = deployDetails.getRunTestResult();
         StringBuilder buf = new StringBuilder();
         DecimalFormat df = new DecimalFormat("#.##");
 
         //Get the individual coverage results
         CodeCoverageResult[] ccresult = rtr.getCodeCoverage();
-        if (ccresult.length > 0);
-        {
+
+        if (ccresult.length > 0) {
             buf.append("[SMA] Code Coverage Results\n");
 
             double loc = 0;
             double locUncovered = 0;
-            for (CodeCoverageResult ccr : ccresult)
-            {
+            for (CodeCoverageResult ccr : ccresult) {
                 buf.append(ccr.getName() + ".cls");
                 buf.append(" -- ");
                 loc = ccr.getNumLocations();
                 locUncovered = ccr.getNumLocationsNotCovered();
 
                 double coverage = 0;
-                if (loc > 0)
-                {
+                if (loc > 0) {
                     coverage = calculateCoverage(locUncovered, loc);
                 }
-
                 buf.append(df.format(coverage) + "%\n");
             }
 
@@ -280,7 +255,6 @@ public class SMAConnection
             buf.append("\nTotal code coverage for this deployment -- ");
             buf.append(df.format(totalCoverage) + "%\n");
         }
-
         return buf.toString();
     }
 
@@ -289,19 +263,18 @@ public class SMAConnection
      *
      * @return
      */
-    public String getCodeCoverageWarnings()
-    {
+    public String getCodeCoverageWarnings() {
         RunTestsResult rtr = deployDetails.getRunTestResult();
         StringBuilder buf = new StringBuilder();
         CodeCoverageWarning[] ccwarn = rtr.getCodeCoverageWarnings();
-        if (ccwarn.length > 0);
-        {
+
+        if (ccwarn.length > 0) {
             buf.append("[SMA] Code Coverage Warnings\n");
-            for (CodeCoverageWarning ccw : ccwarn)
-            {
+
+            for (CodeCoverageWarning ccw : ccwarn) {
                 buf.append("Code coverage issue");
-                if (ccw.getName() != null)
-                {
+
+                if (ccw.getName() != null) {
                     String n = (ccw.getNamespace() == null ? "" :
                             (ccw.getNamespace() + ".")) + ccw.getName();
                     buf.append(", class: " + n);
@@ -309,7 +282,6 @@ public class SMAConnection
                 buf.append(" -- " + ccw.getMessage() + "\n");
             }
         }
-
         return buf.toString();
     }
 
@@ -318,20 +290,14 @@ public class SMAConnection
      *
      * @return
      */
-    public DeployDetails getDeployDetails()
-    {
-        return deployDetails;
-    }
+    public DeployDetails getDeployDetails() { return deployDetails; }
 
     /**
      * Sets the DeployDetails for this deployment. For unit tests
      *
      * @param deployDetails
      */
-    public void setDeployDetails(DeployDetails deployDetails)
-    {
-        this.deployDetails = deployDetails;
-    }
+    public void setDeployDetails(DeployDetails deployDetails) { this.deployDetails = deployDetails; }
 
     /**
      * Helper method to calculate the total code coverage in this deployment
@@ -339,28 +305,21 @@ public class SMAConnection
      * @param ccresult
      * @return
      */
-    private Double getTotalCodeCoverage(CodeCoverageResult[] ccresult)
-    {
+    private Double getTotalCodeCoverage(CodeCoverageResult[] ccresult) {
+        double zeroCoverage = 0;
+
+        if (ccresult.length == 0) { return zeroCoverage; }
+
         double totalLoc = 0;
         double totalLocUncovered = 0;
 
-        if (ccresult.length > 0);
-        {
-            for (CodeCoverageResult ccr : ccresult)
-            {
-                totalLoc += ccr.getNumLocations();
-                totalLocUncovered += ccr.getNumLocationsNotCovered();
-            }
+        for (CodeCoverageResult ccr : ccresult) {
+            totalLoc += ccr.getNumLocations();
+            totalLocUncovered += ccr.getNumLocationsNotCovered();
         }
+        if (totalLoc == 0) { return zeroCoverage; }
 
-        // Determine the coverage
-        double coverage = 0;
-        if (totalLoc > 0)
-        {
-            coverage = calculateCoverage(totalLocUncovered, totalLoc);
-        }
-
-        return coverage;
+        return calculateCoverage(totalLocUncovered, totalLoc);
     }
 
     /**
@@ -370,8 +329,83 @@ public class SMAConnection
      * @param totalLoc
      * @return
      */
-    private double calculateCoverage(double totalLocUncovered, double totalLoc)
-    {
+    private double calculateCoverage(double totalLocUncovered, double totalLoc) {
         return (1 - (totalLocUncovered / totalLoc)) * 100;
+    }
+
+    public void createJenkinsCICustomSettingsSObject() throws ConnectionException {
+        CustomObject cs = new CustomObject();
+        cs.setCustomSettingsType(CustomSettingsType.Hierarchy);
+        String name = "JenkinsCISettings";
+        cs.setFullName(name + "__c");
+        cs.setLabel(name);
+
+        String gitSha1FieldDevName = "GitSha1";
+        CustomField gitSha1Field = new CustomField();
+        gitSha1Field.setType(FieldType.Text);
+        gitSha1Field.setLength(255);
+        gitSha1Field.setLabel("Git SHA1");
+        gitSha1Field.setFullName(gitSha1FieldDevName + "__c");
+
+        String gitDeploymentDateDevName = "GitDeploymentDate";
+        CustomField gitDeploymentDateField = new CustomField();
+        gitDeploymentDateField.setType(FieldType.DateTime);
+        gitDeploymentDateField.setLabel("Git Deployment Date");
+        gitDeploymentDateField.setFullName(gitDeploymentDateDevName + "__c");
+
+        String jobNameDevName = "JenkinsJobName";
+        CustomField jobNameField = new CustomField();
+        jobNameField.setType(FieldType.Text);
+        jobNameField.setLength(255);
+        jobNameField.setLabel("Jenkins Job Name");
+        jobNameField.setFullName(jobNameDevName + "__c");
+
+        String buildNumberDevName = "JenkinsBuildNumber";
+        CustomField buildNumberField = new CustomField();
+        buildNumberField.setType(FieldType.Text);
+        buildNumberField.setLength(255);
+        buildNumberField.setLabel("Jenkins Build Number");
+        buildNumberField.setFullName(buildNumberDevName + "__c");
+
+        cs.setFields(new CustomField[] { gitSha1Field, gitDeploymentDateField, jobNameField, buildNumberField });
+
+        com.sforce.soap.metadata.SaveResult[] results = metadataConnection.createMetadata(new Metadata[] { cs });
+
+        for (com.sforce.soap.metadata.SaveResult r : results) {
+            if (r.isSuccess()) {
+                LOG.warning("Component '" + r.getFullName() + "' created successfully!");
+            } else {
+                LOG.warning("Could not create component '" + r.getFullName() + "'. Errors: ");
+                for (Error err : r.getErrors()) {
+                    LOG.warning("- " + err.getMessage());
+
+                }
+            }
+        }
+    }
+
+    public void saveJenkinsCISettings(SObject settings) throws ConnectionException {
+        com.sforce.soap.partner.UpsertResult[] res = partnerConnection.upsert("Name", new SObject[] { settings });
+        for (com.sforce.soap.partner.UpsertResult r : res) {
+            if (r.isSuccess()) {
+                LOG.warning("Upsert of JenkinsCISettings should have been successful");
+
+            } else {
+                LOG.warning("Error while saving JenkinsCISettings: ");
+                for (com.sforce.soap.partner.Error err : r.getErrors()) {
+                    LOG.warning("- " + err.getMessage());
+                }
+            }
+        }
+    }
+
+    public SObject retrieveJenkinsCISettingsFromOrg() throws Exception {
+        QueryResult qr = partnerConnection.query("SELECT Name, GitSha1__c, GitDeploymentDate__c, LastModifiedDate FROM JenkinsCISettings__c WHERE Name = 'SMA' LIMIT 1");
+        SObject[] sobjs = qr.getRecords();
+
+        if (sobjs.length == 0) {
+            throw new NoSuchElementException("Could not find a JenkinsCISettings record");
+        }
+        return sobjs[0];
     }
 }
