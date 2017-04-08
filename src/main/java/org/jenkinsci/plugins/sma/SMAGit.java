@@ -3,6 +3,7 @@ package org.jenkinsci.plugins.sma;
 import org.eclipse.jgit.api.DiffCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.ObjectReader;
 import org.eclipse.jgit.lib.Repository;
@@ -32,7 +33,7 @@ public class SMAGit {
     private Git git;
     private Repository repository;
     private List<DiffEntry> diffs;
-    private String prevCommit, curCommit;
+    private String previousCommit, currentCommit;
 
     private static final Logger LOG = Logger.getLogger(SMAGit.class.getName());
 
@@ -40,13 +41,11 @@ public class SMAGit {
      * Creates an SMAGit instance
      *
      * @param pathToWorkspace
-     * @param curCommit
      * @param diffAgainst
      * @param smaMode
      * @throws Exception
      */
     public SMAGit(String pathToWorkspace,
-                  String curCommit,
                   String diffAgainst,
                   Mode smaMode) throws Exception
     {
@@ -54,20 +53,32 @@ public class SMAGit {
         FileRepositoryBuilder builder = new FileRepositoryBuilder();
         this.repository = builder.setGitDir(repoDir).readEnvironment().build();
         this.git = new Git(repository);
-        this.curCommit = curCommit;
+
+        updateLocalRefSpecs(git);
+        this.currentCommit = retrieveCommitId(repository, Constants.HEAD);
 
         if (smaMode == Mode.PRB) {
-            updateLocalRefSpecs(this.git);
-            ObjectId branchId = repository.resolve("refs/remotes/origin/" + diffAgainst);
-            RevCommit targetCommit = new RevWalk(repository).parseCommit(branchId);
-            this.prevCommit = targetCommit.getName();
+            this.previousCommit = retrieveCommitId(repository, "refs/remotes/origin/" + diffAgainst);
 
         } else if (smaMode == Mode.STD) {
-            this.prevCommit = diffAgainst;
+            this.previousCommit = diffAgainst;
         }
         if (smaMode != Mode.INI) {
             getDiffs();
         }
+    }
+
+    /**
+     *
+     * @param repository
+     * @param revStr
+     * @return
+     * @throws IOException
+     */
+    private static String retrieveCommitId(Repository repository, String revStr) throws IOException {
+        ObjectId id = repository.resolve(revStr);
+        RevCommit commit = new RevWalk(repository).parseCommit(id);
+        return commit.getName();
     }
 
     /**
@@ -97,7 +108,7 @@ public class SMAGit {
                 String item = SMAUtility.checkMeta(diff.getNewPath());
 
                 if (!additions.containsKey(item) && item.contains(SOURCEDIR)) {
-                    additions.put(diff.getNewPath(), getBlob(diff.getNewPath(), getCurCommit()));
+                    additions.put(diff.getNewPath(), getBlob(diff.getNewPath(), getCurrentCommit()));
                 }
             }
         }
@@ -118,7 +129,7 @@ public class SMAGit {
                 String item = SMAUtility.checkMeta(diff.getOldPath());
 
                 if (!deletions.containsKey(item) && item.contains(SOURCEDIR)) {
-                    deletions.put(diff.getOldPath(), getBlob(diff.getOldPath(), getPrevCommit()));
+                    deletions.put(diff.getOldPath(), getBlob(diff.getOldPath(), getPreviousCommit()));
                 }
             }
         }
@@ -140,7 +151,7 @@ public class SMAGit {
                 String item = SMAUtility.checkMeta(diff.getNewPath());
 
                 if (!modifiedMetadata.containsKey(item) && item.contains(SOURCEDIR)) {
-                    modifiedMetadata.put(diff.getNewPath(), getBlob(diff.getNewPath(), getCurCommit()));
+                    modifiedMetadata.put(diff.getNewPath(), getBlob(diff.getNewPath(), getCurrentCommit()));
                 }
             }
         }
@@ -160,7 +171,7 @@ public class SMAGit {
                 String item = SMAUtility.checkMeta(diff.getOldPath());
 
                 if (!originalMetadata.containsKey(item) && item.contains(SOURCEDIR)) {
-                    originalMetadata.put(diff.getOldPath(), getBlob(diff.getOldPath(), getPrevCommit()));
+                    originalMetadata.put(diff.getOldPath(), getBlob(diff.getOldPath(), getPreviousCommit()));
                 }
             }
         }
@@ -209,7 +220,7 @@ public class SMAGit {
         ObjectReader reader = null;
         try {
             reader = repository.newObjectReader();
-            ObjectId commitId = repository.resolve(getCurCommit());
+            ObjectId commitId = repository.resolve(getCurrentCommit());
             RevWalk revWalk = new RevWalk(reader);
             RevCommit commit = revWalk.parseCommit(commitId);
             RevTree tree = commit.getTree();
@@ -223,7 +234,7 @@ public class SMAGit {
                 } else {
                     String member = treeWalk.getPathString();
                     if (member.contains(SOURCEDIR)) {
-                        byte[] data = getBlob(member, getCurCommit());
+                        byte[] data = getBlob(member, getCurrentCommit());
                         contents.put(member, data);
                     }
                 }
@@ -288,12 +299,12 @@ public class SMAGit {
         return git;
     }
 
-    public String getPrevCommit() {
-        return prevCommit;
+    public String getPreviousCommit() {
+        return previousCommit;
     }
 
-    public String getCurCommit() {
-        return curCommit;
+    public String getCurrentCommit() {
+        return currentCommit;
     }
 
     /**
@@ -304,8 +315,8 @@ public class SMAGit {
      */
     private void getDiffs() throws Exception {
         OutputStream out = new ByteArrayOutputStream();
-        CanonicalTreeParser oldTree = getTree(getPrevCommit());
-        CanonicalTreeParser newTree = getTree(getCurCommit());
+        CanonicalTreeParser oldTree = getTree(getPreviousCommit());
+        CanonicalTreeParser newTree = getTree(getCurrentCommit());
         DiffCommand diff = git.diff().setOutputStream(out).setOldTree(oldTree).setNewTree(newTree);
         diffs = diff.call();
     }

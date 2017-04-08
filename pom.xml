@@ -28,8 +28,8 @@
         <connection>scm:git:ssh://github.com/jenkinsci/salesforce-migration-assistant-plugin.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/jenkinsci/salesforce-migration-assistant-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/salesforce-migration-assistant-plugin</url>
-      <tag>HEAD</tag>
-  </scm>
+        <tag>HEAD</tag>
+    </scm>
 
     <issueManagement>
         <system>GitHub</system>

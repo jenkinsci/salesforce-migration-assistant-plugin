@@ -35,7 +35,7 @@ public class SMAJenkinsCIOrgSettings {
     private SObject createNewCustomSetting() {
         SObject so = new SObject();
         so.setType("JenkinsCISettings__c");
-        so.setField("Name", "SMA");
+        so.setField("Name", NAME);
         so.setField("GitSha1__c", null);
         so.setField("GitDeploymentDate__c", null);
         so.setField("JenkinsJobName__c", null);
@@ -52,7 +52,7 @@ public class SMAJenkinsCIOrgSettings {
     }
 
     public String getGitSha1() {
-        return getCustomSetting().getField("GitSha1__c").toString();
+        return null == getCustomSetting().getField("GitSha1__c") ? null : getCustomSetting().getField("GitSha1__c").toString();
     }
 
     public void setGitSha1(String sha1) {

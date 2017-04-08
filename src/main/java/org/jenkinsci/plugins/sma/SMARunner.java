@@ -34,11 +34,10 @@ public class SMARunner {
      */
     public SMARunner(EnvVars jobVariables, String prTargetBranch, SMAJenkinsCIOrgSettings orgSettings) throws Exception {
         // Get envvars to initialize SMAGit
-        Boolean shaOverride = false;
-        this.currentCommit = jobVariables.get("GIT_COMMIT");
+        Boolean shaOverride  = false;
         this.pathToWorkspace = jobVariables.get("WORKSPACE");
-        String jobName = jobVariables.get("JOB_NAME");
-        String buildNumber = jobVariables.get("BUILD_NUMBER");
+        String jobName       = jobVariables.get("JOB_NAME");
+        String buildNumber   = jobVariables.get("BUILD_NUMBER");
 
         if (null != orgSettings && null != orgSettings.getGitSha1()) {
             previousCommit = orgSettings.getGitSha1();
@@ -59,15 +58,16 @@ public class SMARunner {
         // Configure using pull request logic
         if (!prTargetBranch.isEmpty() && !shaOverride) {
             deployAll = false;
-            git = new SMAGit(pathToWorkspace, currentCommit, prTargetBranch, SMAGit.Mode.PRB);
-            previousCommit = git.getPrevCommit();
+            git = new SMAGit(pathToWorkspace, prTargetBranch, SMAGit.Mode.PRB);
+            previousCommit = git.getPreviousCommit();
             
         } else if (deployAll) { // Configure for all the metadata
-            git = new SMAGit(pathToWorkspace, currentCommit, null, SMAGit.Mode.INI);
+            git = new SMAGit(pathToWorkspace, null, SMAGit.Mode.INI);
 
         } else { // Configure using the previous successful commit for this job
-            git = new SMAGit(pathToWorkspace, currentCommit, previousCommit, SMAGit.Mode.STD);
+            git = new SMAGit(pathToWorkspace, previousCommit, SMAGit.Mode.STD);
         }
+        currentCommit    = git.getCurrentCommit();
         rollbackLocation = pathToWorkspace + "/sma/rollback" + jobName + buildNumber + ".zip";
     }
 
@@ -159,7 +159,7 @@ public class SMARunner {
      */
     private Map<String, byte[]> getData(List<SMAMetadata> metadatas, String commit) throws Exception {
         Map<String, byte[]> data = new HashMap<String, byte[]>();
-        LOG.warning("getData");
+
         for (SMAMetadata metadata : metadatas) {
             data.put(metadata.toString(), metadata.getBody());
 

@@ -400,7 +400,7 @@ public class SMAConnection {
     }
 
     public SObject retrieveJenkinsCISettingsFromOrg() throws Exception {
-        QueryResult qr = partnerConnection.query("SELECT Name, GitSha1__c, GitDeploymentDate__c, LastModifiedDate FROM JenkinsCISettings__c WHERE Name = 'SMA' LIMIT 1");
+        QueryResult qr = partnerConnection.query("SELECT Name, GitSha1__c, GitDeploymentDate__c FROM JenkinsCISettings__c WHERE Name = 'SMA' LIMIT 1");
         SObject[] sobjs = qr.getRecords();
 
         if (sobjs.length == 0) {
