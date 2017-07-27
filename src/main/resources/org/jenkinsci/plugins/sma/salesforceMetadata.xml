@@ -257,7 +257,7 @@
 		<metaxml>false</metaxml>
     </extension>
     <extension name="report">
-        <metadata>Reports</metadata>
+        <metadata>Report</metadata>
         <container>reports</container>
         <destructible>true</destructible>
 		<metaxml>false</metaxml>
@@ -311,7 +311,7 @@
 		<metaxml>false</metaxml>
     </extension>
     <extension name="translation">
-        <metadata>Translation</metadata>
+        <metadata>Translations</metadata>
         <container>translations</container>
         <destructible>true</destructible>
 		<metaxml>false</metaxml>
